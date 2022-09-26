@@ -1,0 +1,1 @@
+// to do map http status code like 404 => NOT_FOUND
