@@ -1,9 +1,11 @@
 const PRIVATE_KEY = 'thisIsNoSafe';
-const EXPIRES_IN = 86400 // 24 hours
+const JWT_EXPIRES_IN = 3600 // 24 hours
+const JWT_REFRESH_EXP = 86400
 
 export {
   PRIVATE_KEY,
-  EXPIRES_IN
+  JWT_EXPIRES_IN,
+  JWT_REFRESH_EXP,
 }
 
 

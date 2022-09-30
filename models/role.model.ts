@@ -1,6 +1,6 @@
-import mongoose, { Schema, model } from 'mongoose'
+import { Schema, model, Document } from 'mongoose'
 
-export interface IRole {
+export interface IRole extends Document {
   name: string;
 }
 

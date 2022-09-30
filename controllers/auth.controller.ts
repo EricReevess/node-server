@@ -1,10 +1,11 @@
 import gravatar from 'gravatar'
 import database from "../models";
 import { bcryptCompare, bcryptHash, genAccessToken } from '../utils';
-import { EXPIRES_IN, PRIVATE_KEY } from "../config/auth.config";
+import { JWT_EXPIRES_IN, PRIVATE_KEY } from "../config/auth.config";
 
-import type { IUserRequest, CustomResponse, UserTokenPayload } from '../types';
+import type { IUserRequest, CustomResponse, UserTokenPayload, IRefreshTokenRequest } from '../types';
 import type { IRole } from '../models/role.model';
+import RefreshToken from '../models/refresh-token.model';
 
 const { User, Role } = database
 
@@ -72,7 +73,7 @@ export function signIn(
 
   User.findOne({
     email,
-  }).populate<Pick<PopulatedParent, 'roles'>>('roles', '-__v')
+  }).populate<Pick<PopulatedParent, 'roles'>>('roles', '-_id -__v') // the '-' prefix means remove field in result
     .exec((err, user) => {
       if (err) {
         res.status(500).json({ code: -1, msg: err })
@@ -94,9 +95,12 @@ export function signIn(
           return genAccessToken<UserTokenPayload>(
             { id: user.id },
             PRIVATE_KEY,
-            { expiresIn: EXPIRES_IN }
+            { expiresIn: JWT_EXPIRES_IN }
           )
         }).then((token) => {
+
+          const refreshToken = RefreshToken.createToken(user.id)
+
           const authorities = user.roles.map((role) => 'ROLE_' + role.name.toUpperCase())
 
           res.status(200).json({
@@ -105,11 +109,59 @@ export function signIn(
               username: user.username,
               email: user.email,
               roles: authorities,
-              accessToken: token
+              accessToken: token,
+              refreshToken,
             }
           })
         })
 
     })
 
-} 
+}
+
+export function refreshToken(
+  req: IRefreshTokenRequest,
+  res: CustomResponse,
+): void {
+  const { refreshToken } = req.body
+
+  if (!refreshToken) {
+    res.status(403).json({ code: -1, msg: "Refresh Token is required!" });
+    return
+  }
+
+  RefreshToken.findOne({ token: refreshToken }).then(async (refreshTokenDoc) => {
+    if (!refreshTokenDoc) {
+      res.status(403).json({ code: -1, msg: "Refresh Token is invalid!" });
+      return
+    }
+
+    if (RefreshToken.isTokenExpired(refreshTokenDoc)) {
+
+      res.status(403).json({ code: -1, msg: 'Refresh Token 已经过期了' })
+
+      return RefreshToken.findOneAndRemove(refreshTokenDoc._id, { useFindAndModify: false })
+        .exec()
+    }
+
+    const newAccessToken = await genAccessToken<UserTokenPayload>(
+      { id: refreshTokenDoc.user._id.toString() },
+      PRIVATE_KEY,
+      { expiresIn: JWT_EXPIRES_IN }
+    )
+
+    return res.status(200).json({
+      code: 0,
+      data: {
+        accessToken: newAccessToken,
+        refreshToken: refreshTokenDoc.token
+      }
+    })
+  }).catch((err => {
+    if (err) {
+      res.status(500).json({ code: -1, msg: err });
+      return
+    }
+  }))
+
+}

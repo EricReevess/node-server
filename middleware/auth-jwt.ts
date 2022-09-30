@@ -1,10 +1,19 @@
-import jwt from 'jsonwebtoken'
+import jwt, { TokenExpiredError } from 'jsonwebtoken'
 import { NextFunction } from "express";
 import { PRIVATE_KEY } from '../config/auth.config'
 import database from '../models'
 import { IUserRequest, CustomResponse, UserTokenPayload } from '../types';
 
 const { User, Role } = database
+
+export function catchTokenExpError(err: jwt.VerifyErrors, res: CustomResponse): void {
+  if (err instanceof TokenExpiredError) {
+    res.status(401).json({ code: -1, msg: 'Token 已经过期' })
+    return
+  }
+  res.status(401).json({ code: -1, msg: '未经授权的访问' })
+
+}
 
 export function verifyToken(
   req: IUserRequest,
@@ -19,9 +28,7 @@ export function verifyToken(
 
   jwt.verify(token, PRIVATE_KEY, (err, decoded) => {
     if (err) {
-      // console.log('err:', err);
-      res.status(401).json({ code: -1, msg: '需要登录才能访问😁' })
-      return;
+      return catchTokenExpError(err, res)
     }
 
     req.userID = (decoded as UserTokenPayload).id

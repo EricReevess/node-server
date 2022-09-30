@@ -5,7 +5,7 @@ import {
   setResponseHeader
 } from '../middleware'
 import { Express } from 'express'
-import { signIn, signUp } from '../controllers/auth.controller'
+import { signIn, signUp, refreshToken } from '../controllers/auth.controller'
 import { checkSignUpParams } from '../middleware/verify-signup'
 
 export default function auth(app: Express) {
@@ -17,4 +17,5 @@ export default function auth(app: Express) {
     checkRolesExisted
   ], signUp)
   app.post('/api/auth/signin', signIn)
+  app.post('/api/auth/refreshToken', refreshToken)
 }

@@ -14,7 +14,7 @@ const corsOptions = {
   origin: 'http://localhost: 8001'
 }
 
-const { mongoose, User, Role } = database
+const { mongoose, Role } = database
 
 const app = express()
 
@@ -49,11 +49,12 @@ mongoose.connect(MONGO_URI)
     process.exit();
   })
 
+// 初始化数据库3个角色
 function initDatabase(): void {
   Role.estimatedDocumentCount((err, count) => {
     if (err) {
       throw new Error(err)
-    }
+    } 
 
     if (!count) {
       Role.insertMany([{ name: 'user' }, { name: 'admin' }, { name: 'moderator' }])

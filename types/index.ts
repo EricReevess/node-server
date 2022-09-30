@@ -25,6 +25,8 @@ export type CustomResponse = Response<ResponseBody>
 
 export type IUserRequest = IRequest<RequestBody, UserHeader>
 
+export type IRefreshTokenRequest = IRequest<{ refreshToken: string }, {}>
+
 export type RequestBody = {
   username: string;
   email: string;
